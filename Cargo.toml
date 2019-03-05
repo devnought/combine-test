@@ -1,0 +1,8 @@
+[package]
+name = "combine-test"
+version = "0.1.0"
+authors = ["Kyle Gretchev <kyle.gretchev@magnetforensics.com>"]
+edition = "2018"
+
+[dependencies]
+combine = "3.6.7"
