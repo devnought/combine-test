@@ -3,8 +3,8 @@
 // https://www.cyberciti.biz/faq/create-ssh-config-file-on-linux-unix/
 
 use combine::{
-    char::{self, letter, space},
-    many, many1, satisfy, skip_many1, ParseError, Parser, Stream,
+    char::{self, space},
+    many, many1, satisfy, skip_many, skip_many1, token, ParseError, Parser, Stream,
 };
 use std::collections::HashMap;
 
@@ -46,7 +46,7 @@ struct Section {
     values: HashMap<String, String>,
 }
 
-/*fn whitespace<I>() -> impl Parser<Input = I>
+fn whitespace<I>() -> impl Parser<Input = I>
 where
     I: Stream<Item = char>,
     I::Error: ParseError<I::Item, I::Range, I::Position>,
@@ -55,7 +55,7 @@ where
     // Wrap the `spaces().or(comment)` in `skip_many` so that it skips alternating whitespace and
     // comments
     skip_many(skip_many1(space()).or(comment))
-}*/
+}
 
 fn parse_value<I>() -> impl Parser<Input = I, Output = String>
 where
@@ -65,14 +65,22 @@ where
     many1(satisfy(|c| c != '\n' && c != '#')).message("while parsing value")
 }
 
+fn parse_key<I>() -> impl Parser<Input = I, Output = String>
+where
+    I: Stream<Item = char>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+{
+    many1(satisfy(|c: char| !c.is_whitespace())).message("while parsing key")
+}
+
 fn property<T>() -> impl Parser<Input = T, Output = (String, String)>
 where
     T: Stream<Item = char>,
     T::Error: ParseError<T::Item, T::Range, T::Position>,
 {
     (
-        skip_many1(space()),
-        many1(letter()),
+        skip_many(space()),
+        parse_key(),
         skip_many1(space()),
         parse_value(),
     )
@@ -86,7 +94,7 @@ where
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
     // After each property we skip any whitespace that followed it
-    many(property()).message("while parsing properties") //.skip(whitespace()))
+    many(property().skip(whitespace())).message("while parsing properties")
 }
 
 fn section<T>() -> impl Parser<Input = T, Output = Section>
@@ -127,7 +135,7 @@ mod tests {
     #[test]
     fn parse_property_success() {
         // Arrange
-        let data = "    LocalForward 9906 127.0.0.1:3306";
+        let data = "LocalForward      9906 127.0.0.1:3306";
         let expected = Ok((
             (
                 String::from("LocalForward"),
@@ -138,6 +146,32 @@ mod tests {
 
         // Act
         let actual = property().easy_parse(data);
+
+        // Assert
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn parse_properties_success() {
+        // Arrange
+        let data = r#"LocalForward    9906 127.0.0.1:3306
+   HostName github.com"#;
+
+        let expected_map = [
+            (
+                String::from("LocalForward"),
+                String::from("9906 127.0.0.1:3306"),
+            ),
+            (String::from("HostName"), String::from("github.com")),
+        ]
+        .iter()
+        .cloned()
+        .collect();
+
+        let expected = Ok((expected_map, ""));
+
+        // Act
+        let actual = properties().easy_parse(data);
 
         // Assert
         assert_eq!(expected, actual);
