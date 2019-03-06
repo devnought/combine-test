@@ -1,3 +1,7 @@
+// Many incorrect assumptions were made when creating this initially.
+// See the following for a better description on the format:
+// https://www.cyberciti.biz/faq/create-ssh-config-file-on-linux-unix/
+
 use combine::{
     char::{self, letter, space},
     many, many1, satisfy, skip_many1, ParseError, Parser, Stream,
@@ -140,7 +144,40 @@ mod tests {
     }
 
     #[test]
-    fn parse_section_success() {
+    fn parse_section_with_remainder_success() {
+        // Arrange
+        let data = r#"Host github-org
+    User git
+    HostName github.com
+    IdentityFile ~/.ssh/github.org.key
+Host tunnel"#;
+
+        let expected_section = Section {
+            host: String::from("github-org"),
+            values: [
+                (String::from("User"), String::from("git")),
+                (String::from("HostName"), String::from("github.com")),
+                (
+                    String::from("IdentityFile"),
+                    String::from("~/.ssh/github.org.key"),
+                ),
+            ]
+            .iter()
+            .cloned()
+            .collect(),
+        };
+
+        let expected = Ok((expected_section, "Host tunnel"));
+
+        // Act
+        let actual = section().easy_parse(data);
+
+        // Assert
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn parse_section_without_remainder_success() {
         // Arrange
         let data = r#"Host github-org
     User git
