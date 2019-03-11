@@ -1,6 +1,7 @@
 // Many incorrect assumptions were made when creating this initially.
 // See the following for a better description on the format:
 // https://www.cyberciti.biz/faq/create-ssh-config-file-on-linux-unix/
+// https://linux.die.net/man/5/ssh_config
 
 use combine::{
     char::{self, space},
@@ -10,10 +11,17 @@ use combine::{
     stream::state::State,
     ParseError, Parser, RangeStream,
 };
-use std::fs;
+use std::{fs, path::PathBuf};
+use structopt::StructOpt;
+
+#[derive(StructOpt, Debug)]
+struct Opts {
+    pub input: PathBuf,
+}
 
 fn main() {
-    let data = fs::read_to_string("simple.txt").expect("Could not read input file");
+    let opt = Opts::from_args();
+    let data = fs::read_to_string(opt.input).expect("Could not read input file");
     let res = section().easy_parse(State::new(data.as_str()));
 
     dbg!(res);
