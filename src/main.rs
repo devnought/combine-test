@@ -6,7 +6,7 @@
 use combine::{
     char::{self, space},
     many, many1,
-    range::{range, take_while, take_while1},
+    range::{range, take_until_range, take_while, take_while1},
     skip_many, skip_many1,
     stream::state::State,
     ParseError, Parser, RangeStream,
@@ -43,7 +43,7 @@ where
     (
         range("Host"),
         whitespace(),
-        take_while(|c: char| !c.is_whitespace()),
+        take_while1(|c: char| !c.is_whitespace()),
     )
         .map(|(_, _, h)| h)
         .message("while parsing host name")
