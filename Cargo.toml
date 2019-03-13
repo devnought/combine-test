@@ -5,5 +5,5 @@ authors = ["Kyle Gretchev <kyle.gretchev@magnetforensics.com>"]
 edition = "2018"
 
 [dependencies]
-combine = "3.6.7"
+combine = "3.8.0"
 structopt = "0.2.15"
